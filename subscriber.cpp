@@ -77,7 +77,19 @@ int main(int argc, char *argv[]) {
                 cout << "Invalid command, maybe you want to try <subscribe topic SF> or <unsubcribe topic>" << endl;
                 continue;
             } else {
+                message message = {};
+                char *topic = getTopic(buffer);
+                strcpy(message.topic, topic);
 
+                if (command == TYPE_SUBSCRIBE) {
+                    if (atoi(getSF(buffer)) == 1) strcpy(message.message, "sf");
+                    message.type = TYPE_SUBSCRIBE;
+                } else {
+                    message.type = TYPE_UNSUBSCRIBE;
+                }
+
+                int n = send(tcp_socket, &message, sizeof(message), 0);
+                DIE(n < 0, "cannot send subscription request from client");
             }
 
         }
@@ -92,10 +104,8 @@ int main(int argc, char *argv[]) {
                 cout << "Server closed connection !" << endl;
                 break;
             } else {
-                // TODO format and print topic message
-
+                printf("%s:%d - %s - %d - %s \n", inet_ntoa(message.source.sin_addr), ntohs(message.source.sin_port), message.topic, message.type, message.message);
             }
-
         }
 
     } FOREVER;

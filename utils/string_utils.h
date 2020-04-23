@@ -6,8 +6,9 @@
 #define TCP_TOPICS_STRING_UTILS_H
 
 
-bool isSubscribe(char *message);
-bool isUnsubscribe(char *message);
-
+bool isSubscribe(const char *message);
+bool isUnsubscribe(const char *message);
+char * getSF(const char *);
+char* getTopic(const char *);
 
 #endif //TCP_TOPICS_STRING_UTILS_H

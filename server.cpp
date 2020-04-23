@@ -125,9 +125,11 @@ int main(int argc, char *argv[]) {
 
         // udp message arrived
         if (__FD_ISSET(udp_socket, &tmp_descriptors)) {
+            cout << "udp message arrived ";
             message message = {};
             int received_bytes = recvfrom(udp_socket, &message, sizeof(message), 0, (struct sockaddr*) &cli_addr, &clilen);
             DIE(received_bytes < 0, "udp message received got problems");
+            cout << " and got topic " << message.topic << endl;
 
             send_online_messages(message, client_sockets, client_topics, client_active, client_sf, cli_addr, client_messages);
         }
