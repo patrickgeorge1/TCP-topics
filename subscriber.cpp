@@ -80,6 +80,8 @@ int main(int argc, char *argv[]) {
                 message message = {};
                 char *topic = getTopic(buffer);
                 strcpy(message.topic, topic);
+                strcpy(message.id, argv[1]);
+
 
                 if (command == TYPE_SUBSCRIBE) {
                     if (atoi(getSF(buffer)) == 1) strcpy(message.message, "sf");

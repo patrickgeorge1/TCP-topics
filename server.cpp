@@ -12,11 +12,11 @@
 using namespace std;
 
 void send_offline_messages(char *, int, map<char *, vector <message>> &, bool);
-void subscribe_client(message , map<char *, vector <char *>> &);
-void register_client(message , int , struct sockaddr_in, map<char *, int> &, map<char *, bool> &, map<char *, bool> &,  map<char *, vector <struct message>> &);
-void disconnect_client(message , map<char *, int> &, map<char *, bool> &);
-void unsubscribe_client(message, map<char *, vector <char *>> &);
-void send_online_messages(message, map<char *, int> &, map<char *, vector <char *>> &, map<char *, bool> &, map<char *, bool> &, struct sockaddr_in, map<char *, vector <struct message>> &);
+void subscribe_client(message &, map<char *, vector <char *>> &);
+void register_client(message &, int , struct sockaddr_in, map<char *, int> &, map<char *, bool> &, map<char *, bool> &,  map<char *, vector <struct message>> &);
+void disconnect_client(message &, map<char *, int> &, map<char *, bool> &);
+void unsubscribe_client(message &, map<char *, vector <char *>> &);
+void send_online_messages(message &, map<char *, int> &, map<char *, vector <char *>> &, map<char *, bool> &, map<char *, bool> &, struct sockaddr_in, map<char *, vector <struct message>> &);
 
 
 int main(int argc, char *argv[]) {
@@ -96,6 +96,7 @@ int main(int argc, char *argv[]) {
                 int received_bytes = recv(i, &message, sizeof(message), 0);
                 DIE(received_bytes < 0, "tcp message received got problems");
 
+
                 switch ((int) message.type) {
                     case TYPE_REQUEST_CONNECTION:
                         // register client
@@ -125,11 +126,9 @@ int main(int argc, char *argv[]) {
 
         // udp message arrived
         if (__FD_ISSET(udp_socket, &tmp_descriptors)) {
-            cout << "udp message arrived ";
             message message = {};
             int received_bytes = recvfrom(udp_socket, &message, sizeof(message), 0, (struct sockaddr*) &cli_addr, &clilen);
             DIE(received_bytes < 0, "udp message received got problems");
-            cout << " and got topic " << message.topic << endl;
 
             send_online_messages(message, client_sockets, client_topics, client_active, client_sf, cli_addr, client_messages);
         }
@@ -149,7 +148,7 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
-void register_client(message message, int socket, struct sockaddr_in cli_addr, map<char *, int> &client_sockets, map<char *, bool> &client_active, map<char *, bool> &client_sf,  map<char *, vector <struct message>> &client_messages) {
+void register_client(message &message, int socket, struct sockaddr_in cli_addr, map<char *, int> &client_sockets, map<char *, bool> &client_active, map<char *, bool> &client_sf,  map<char *, vector <struct message>> &client_messages) {
     if (client_active.find(message.id) == client_active.end()) printf("NEW client %s connected from %s:%d. \n", message.id, inet_ntoa(cli_addr.sin_addr), ntohs(cli_addr.sin_port));
     else printf("client %s reconnected from %s:%d. \n", message.id, inet_ntoa(cli_addr.sin_addr), ntohs(cli_addr.sin_port));
     client_sockets[message.id] = socket;                             // register client socket
@@ -157,7 +156,7 @@ void register_client(message message, int socket, struct sockaddr_in cli_addr, m
     client_sf[message.id] = strncmp(message.message, "sf", 2) == 0;  // register client sf status
 }
 
-void disconnect_client(message message, map<char *, int> &client_sockets, map<char *, bool> &client_active) {
+void disconnect_client(message &message, map<char *, int> &client_sockets, map<char *, bool> &client_active) {
     printf("client %s disconnected\n", message.id);
     client_active[message.id] = false;   // make client offline
     client_sockets.erase(message.id);    // remove client socket
@@ -178,18 +177,20 @@ void send_offline_messages(char *id, int tcp_socket, map<char *, vector <message
     }
 }
 
-void subscribe_client(message message, map<char *, vector <char *>> &client_topics) {
+void subscribe_client(message &message, map<char *, vector <char *>> &client_topics) {
     printf("client %s subscribed to %s\n", message.id, message.topic);
     vector<char *> subscribers;
+
     if (client_topics.find(message.topic) != client_topics.end()) {
         // topic exists so I take it
         subscribers = client_topics[message.topic];
     }
     subscribers.push_back(message.id);
     client_topics[message.topic] = subscribers;
+    // TODO send feedback to clinet
 }
 
-void unsubscribe_client(message message, map<char *, vector <char *>> &client_topics) {
+void unsubscribe_client(message &message, map<char *, vector <char *>> &client_topics) {
     printf("client %s unsubscribed to %s\n", message.id, message.topic);
     vector<char *> subscribers;
     subscribers = client_topics[message.topic];
@@ -201,13 +202,16 @@ void unsubscribe_client(message message, map<char *, vector <char *>> &client_to
         }
     }
     client_topics[message.topic] = subscribers;
+    // TODO send feedback to clinet
 }
 
-void send_online_messages(message message, map<char *, int> &client_sockets, map<char *, vector <char *>> &client_topics, map<char *, bool> &client_active, map<char *, bool> &client_sf, struct sockaddr_in cli_addr, map<char *, vector <struct message>> &client_messages) {
+void send_online_messages(message &message, map<char *, int> &client_sockets, map<char *, vector <char *>> &client_topics, map<char *, bool> &client_active, map<char *, bool> &client_sf, struct sockaddr_in cli_addr, map<char *, vector <struct message>> &client_messages) {
+    cout << "udp message arrived   topic :  " << message.topic <<  " and ready to deliver message " << message.message << endl;
     message.source = cli_addr;
     char * topic = message.topic;
     vector<char *> subscribers = client_topics[topic];
     for (char * subscriber : subscribers) {
+        cout << " to client " << subscriber << endl;
         int tcp_socket = client_sockets[subscriber];
         if (client_active[subscriber]) {
             // subscriber is active
