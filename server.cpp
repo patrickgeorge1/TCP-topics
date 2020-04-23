@@ -1,11 +1,11 @@
 #include <iostream>
 #include <cstring>
-#include <cassert>
 #include <map>
 #include <vector>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include "utils/message.h"
 #include "utils/utils.h"
 #include "utils/string_utils.h"
 
@@ -53,10 +53,12 @@ int main(int argc, char *argv[]) {
     ret = listen(tcp_socket, MAX_CLIENTS);
     DIE(ret < 0, "cannot listen at socket");
 
+    FD_SET(0, &descriptors);
+    FD_SET(udp_socket, &descriptors);
+    descriptors_max = udp_socket;
     FD_SET(tcp_socket, &descriptors);
     descriptors_max = tcp_socket;
 
-    int c = 1;
 
     do {
         tmp_descriptors = descriptors;
@@ -76,23 +78,52 @@ int main(int argc, char *argv[]) {
             printf("New client (CLIENT_ID) connected from %s:%d. \n", inet_ntoa(cli_addr.sin_addr), ntohs(cli_addr.sin_port));
         }
 
+        // tcp message from client arrived
+        for (int i = 5; i <= descriptors_max; ++i) {
+            if (__FD_ISSET(i, &tmp_descriptors)) {
+                // TODO check message type and process it
+
+                message message = {};
+                int received_bytes = recv(i, &message, sizeof(message), 0);
+                DIE(received_bytes < 0, "tcp message received got problems");
+
+                switch ((int) message.type) {
+                    case TYPE_REQUEST_CONNECTION:
+                        printf("New client %s connected from %s:%d. \n", message.id, inet_ntoa(cli_addr.sin_addr), ntohs(cli_addr.sin_port));
+                        // TODO log him in hashtables
+                        break;
+                    case TYPE_DISCONNECT:
+                        __FD_CLR(i, &descriptors);
+                        // TODO
+                        cout << "Disconnected" << endl;
+                        break;
+                }
+                cout << "[SERVER]: message received with type "  << (int) message.type << endl;
+            }
+        }
+
         // udp message arrived
         if (__FD_ISSET(udp_socket, &tmp_descriptors)) {
             // TODO send and/or store message
         }
 
+        // read from keyboard
         if (__FD_ISSET(0, &tmp_descriptors)) {
-            // TODO read exit
-        }
-
-        // tcp message from client arrived
-        for (int i = 3; i <= descriptors_max; ++i) {
-            if (__FD_ISSET(i, &tmp_descriptors)) {
-                // TODO check message type and process it
+            memset(buffer, 0, BUFLEN);
+            fgets(buffer, BUFLEN - 1, stdin);
+            if (strncmp(buffer, "exit", 4) == 0) {
+                for (int i = 3; i <= descriptors_max; ++i) {
+                    if (__FD_ISSET(i, &descriptors)) {
+                        ret = shutdown(i, SHUT_RDWR);
+                        __FD_CLR(i, &descriptors);
+                        DIE(ret < 0, "Can t close a socket connection");
+                    }
+                }
+                exit(EXIT_SUCCESS);
             }
         }
 
-        break;
+
     } FOREVER;
 
     return 0;
