@@ -10,13 +10,13 @@
 #include <unistd.h>
 #include "utils/message.h"
 #include "utils/utils.h"
+#include "utils/string_utils.h"
+
 
 
 using  namespace std;
 
-void send_connect_message(int, char *);
-void send_disconnect_message(int);
-
+int parse_input(char *);
 
 int main(int argc, char *argv[]) {
     DIE(argc < 4, "usage: ./subscriber <ID_Client> <IP_Server> <Port_Server>");
@@ -54,7 +54,8 @@ int main(int argc, char *argv[]) {
         ret = select(descriptors_max + 1, &tmp_descriptors, NULL, NULL, NULL);
         DIE(ret < 0, "cannot select");
 
-        if (__FD_ISSET(0, &tmp_descriptors)) { // read from keyboard
+        // read from keyboard
+        if (__FD_ISSET(0, &tmp_descriptors)) {
             memset(buffer, 0, BUFLEN);
             fgets(buffer, BUFLEN - 1, stdin);
 
@@ -70,26 +71,38 @@ int main(int argc, char *argv[]) {
                 DIE(ret < 0, "cannot shutdown socket");
                 break;
             }
+
+            int command = parse_input(buffer);
+            if (command < 0) {
+                cout << "Invalid command, maybe you want to try <subscribe topic SF> or <unsubcribe topic>" << endl;
+                continue;
+            } else {
+
+            }
+
         }
 
-        if (__FD_ISSET(tcp_socket, &tmp_descriptors)) {  // received tcp message
-            // TODO format and print topic message
+        // received tcp message
+        if (__FD_ISSET(tcp_socket, &tmp_descriptors)) {
+            message message = {};
+            int received_bytes = recv(tcp_socket, &message, sizeof(message), 0);
+            DIE(received_bytes < 0, "tcp message received got problems");
+
+            if ((int) message.type == TYPE_DISCONNECT) {
+                cout << "Server closed connection !" << endl;
+                break;
+            } else {
+                // TODO format and print topic message
+
+            }
+
         }
 
     } FOREVER;
 }
 
-void send_connect_message(int socket, char* id) {
-    message message = {};
-    strcpy(message.id, id);
-    message.type = TYPE_REQUEST_CONNECTION;
-    int n = send(socket, &message, sizeof(message), 0);
-    DIE(n < 0, "cannot send registration message");
-}
-
-void send_disconnect_message(int socket) {
-    message message = {};
-    message.type = TYPE_DISCONNECT;
-    int n = send(socket, &message, sizeof(message), 0);
-    DIE(n < 0, "cannot send disconnection message");
+int parse_input(char * message) {
+    if (isSubscribe(message)) return TYPE_SUBSCRIBE;
+    if (isUnsubscribe(message)) return TYPE_UNSUBSCRIBE;
+    return -1;
 }

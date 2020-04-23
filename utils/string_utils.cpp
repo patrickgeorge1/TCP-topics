@@ -14,3 +14,15 @@ bool isUnsubscribe(char *message) {
     return strcmp(iterator, "unsubscribe") == 0;
 }
 
+char * getTopic(char *message) {
+    char *iterator = strtok(message, " ");
+    iterator = strtok(NULL, " ");
+    return iterator;
+}
+
+char * getSF(char *message) {
+    char *iterator = strtok(message, " ");
+    iterator = strtok(NULL, " ");
+    iterator = strtok(NULL, " ");
+    return iterator;
+}

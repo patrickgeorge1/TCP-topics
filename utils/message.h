@@ -20,7 +20,6 @@ struct message {
 #define TYPE_REQUEST_CONNECTION 0
 #define TYPE_SUBSCRIBE 1
 #define TYPE_UNSUBSCRIBE 2
-#define TYPE_TOPICMESSAGE 3
 #define TYPE_DISCONNECT 4
 
 #define DATATYPE_INT 0
