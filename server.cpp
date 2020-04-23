@@ -113,6 +113,8 @@ int main(int argc, char *argv[]) {
 
                     case TYPE_SUBSCRIBE:
                         subscribe_client(message, client_topics);
+                        printf("|| keys form topics |%d| topic |%s|  valut |%s| size of value |%d| \n", client_topics.size(), message.topic, client_topics[message.topic].back(), client_topics[message.topic].size());
+
                         break;
 
                     case TYPE_UNSUBSCRIBE:
@@ -130,6 +132,7 @@ int main(int argc, char *argv[]) {
             int received_bytes = recvfrom(udp_socket, &message, sizeof(message), 0, (struct sockaddr*) &cli_addr, &clilen);
             DIE(received_bytes < 0, "udp message received got problems");
 
+            printf("|| keys form topics |%d| topic |%s|  valut |%s| size of value |%d| \n", client_topics.size(), message.topic, client_topics[message.topic].back(), client_topics[message.topic].size());
             send_online_messages(message, client_sockets, client_topics, client_active, client_sf, cli_addr, client_messages);
         }
 
@@ -187,6 +190,8 @@ void subscribe_client(message &message, map<char *, vector <char *>> &client_top
     }
     subscribers.push_back(message.id);
     client_topics[message.topic] = subscribers;
+    printf("|| keys form topics |%d| topic |%s|  valut |%s| size of value |%d| \n", client_topics.size(), message.topic, client_topics[message.topic].back(), client_topics[message.topic].size());
+
     // TODO send feedback to clinet
 }
 
@@ -208,10 +213,12 @@ void unsubscribe_client(message &message, map<char *, vector <char *>> &client_t
 void send_online_messages(message &message, map<char *, int> &client_sockets, map<char *, vector <char *>> &client_topics, map<char *, bool> &client_active, map<char *, bool> &client_sf, struct sockaddr_in cli_addr, map<char *, vector <struct message>> &client_messages) {
     cout << "udp message arrived   topic :  " << message.topic <<  " and ready to deliver message " << message.message << endl;
     message.source = cli_addr;
-    char * topic = message.topic;
-    vector<char *> subscribers = client_topics[topic];
+
+    vector<char *> subscribers = client_topics[message.topic];
+    cout << client_topics.size() << " - keys from client topics" << endl;
     for (char * subscriber : subscribers) {
         cout << " to client " << subscriber << endl;
+        printf("who is subscriber |%s| \n", subscriber);
         int tcp_socket = client_sockets[subscriber];
         if (client_active[subscriber]) {
             // subscriber is active
