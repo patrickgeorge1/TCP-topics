@@ -5,9 +5,9 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
-#include "utils/message.h"
-#include "utils/utils.h"
-#include "utils/string_utils.h"
+#include "util/message.h"
+#include "util/utils.h"
+#include "util/string_utils.h"
 
 using namespace std;
 
