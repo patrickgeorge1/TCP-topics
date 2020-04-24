@@ -26,10 +26,11 @@ void send_connect_message(int socket, char* id) {
     DIE(n < 0, "cannot send registration message");
 }
 
-void send_disconnect_message(int socket) {
+void send_disconnect_message(int socket, char * id) {
     cout << "Sent shutdownn" << endl;
     message message = {};
     message.type = TYPE_DISCONNECT;
+    strcpy(message.id, id);
     int n = send(socket, &message, sizeof(message), 0);
     DIE(n < 0, "cannot send disconnection message");
 }

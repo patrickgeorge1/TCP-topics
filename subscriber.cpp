@@ -62,7 +62,7 @@ int main(int argc, char *argv[]) {
             // TODO subscribe, unsubscribe
 
             if (strncmp(buffer, "exit", 4) == 0) {
-                send_disconnect_message(tcp_socket);
+                send_disconnect_message(tcp_socket, argv[1]);
                 __FD_CLR(tcp_socket, &descriptors);
 
 //                ret = close(tcp_socket);
