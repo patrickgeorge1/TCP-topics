@@ -8,6 +8,7 @@
 #define FOREVER while(1)
 #define BUFLEN 256
 #define MAX_CLIENTS 100
+#define DEBUG_PRINT 0
 
 void DIE(bool, std::string);
 void send_connect_message(int, char *);

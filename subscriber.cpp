@@ -3,7 +3,7 @@
 //
 
 #include <iostream>
-#include <string.h>
+#include <cstring>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -72,6 +72,10 @@ int main(int argc, char *argv[]) {
                 break;
             }
 
+            if (buffer[strlen(buffer) - 1] == '\n') {
+                buffer[strlen(buffer) - 1] = '|';
+            }
+            //printf("you parse |%s| \n", buffer);
             int command = parse_input(buffer);
             if (command < 0) {
                 cout << "Invalid command, maybe you want to try <subscribe topic SF> or <unsubcribe topic>" << endl;
@@ -81,6 +85,7 @@ int main(int argc, char *argv[]) {
                 char *topic = getTopic(buffer);
                 strcpy(message.topic, topic);
                 strcpy(message.id, argv[1]);
+                //printf("topic is |%s| with size |%d| and last char is equal with term |%d| \n", message.topic, (int)strlen(message.topic), (message.topic[strlen(message.topic) - 1] == '\n'));
 
 
                 if (command == TYPE_SUBSCRIBE) {
