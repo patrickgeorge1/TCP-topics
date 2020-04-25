@@ -106,8 +106,6 @@ int main(int argc, char *argv[]) {
             DIE(received_bytes < 0, "tcp message received got problems");
 
             if ((int) message.type == TYPE_DISCONNECT) {
-                cout << "Server closed connection !" << endl;
-
                 ret = shutdown(tcp_socket, SHUT_RDWR);
                 DIE(ret < 0, "cannot shutdown socket");
                 break;
