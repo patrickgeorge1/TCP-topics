@@ -170,8 +170,9 @@ void register_client(message &message, int socket, struct sockaddr_in cli_addr, 
 
 void disconnect_client(message &message, map<string, int> &client_sockets, map<string, bool> &client_active) {
     string message_id(message.id);
+    printf("Client %s disconnected .\n", message_id.c_str());
 
-    if(DEBUG_PRINT) printf("client %s disconnected %s\n", message_id.c_str(), message.id);
+    if(DEBUG_PRINT) printf("Client %s disconnected %s\n", message_id.c_str(), message.id);
     client_active[message_id] = false;   // make client offline
     client_sockets.erase(message_id);    // remove client socket
 }
@@ -193,57 +194,38 @@ void send_offline_messages(string id, int tcp_socket, map<string, vector <messag
 void subscribe_client(message &message, map<string, vector <string>> &client_topics, map<pair<string, string>, bool> &client_sf) {
     string message_id(message.id);
     string message_topic(message.topic);
-    //printf("all keys before |%d| \n", (int) client_topics.size());
 
     if(DEBUG_PRINT) printf("client %s subscribed to %s\n", message_id.c_str(), message_topic.c_str());
     vector<string> subscribers;
 
     if (client_topics.find(message_topic) != client_topics.end()) {
         // topic exists so I take it
-        cout << " topic already exists " << endl;
         subscribers = client_topics[message_topic];
     }
     client_sf[make_pair(message_topic, message_id)] = strncmp(message.message, "sf", 2) == 0;
 
     subscribers.push_back(message_id);
     client_topics[message_topic] = subscribers;
-
-
-//    for(map<string, vector <string>>::iterator it = client_topics.begin(); it != client_topics.end(); ++it) {
-//        printf("sssssskc |%s|  ? message topic |%d|  \n",  it->first.c_str(), (message_topic.compare(it->first) == 0));
-//
-//    }
-    printf("all keys after subscription |%d| \n", (int) client_topics.size());
-    // TODO send feedback to clinet
 }
 
 void unsubscribe_client(message &message, map<string, vector <string>> &client_topics, map<pair<string, string>, bool> &client_sf) {
     string message_id(message.id);
     string message_topic(message.topic);
 
-    //printf("1all keys before unsub |%d| \n", (int) client_topics.size());
     if(DEBUG_PRINT) printf("client %s unsubscribed to %s\n", message_id.c_str(), message_topic.c_str());
-    //printf("2all keys before unsub |%d| \n", (int) client_topics.size());
-
 
     vector<string> subscribers  = client_topics[message_topic];
     vector<string> remainig_subscribers;
-    printf("number of subscribers from topic |%s| is |%d| \n", message_topic.c_str(), (int) subscribers.size());
 
 
     for (string subscriber : subscribers) {
-        printf("subscriber |%s| \n", subscriber.c_str());
         if (message_id != subscriber) {
-            printf(" found leaver \n");
             remainig_subscribers.push_back(subscriber);
         }
     }
 
     client_sf[make_pair(message_topic, message_id)] = false;
     client_topics[message_topic] = remainig_subscribers;
-    printf("number of subscribers from topic AT END OF FUNCTION |%s| is |%d| \n", message_topic.c_str(), (int) client_topics[message_topic].size());
-
-    // TODO send feedback to clinet
 }
 
 void send_online_messages(message &message, map<string, int> &client_sockets, map<string, vector <string>> client_topics, map<string, bool> &client_active, map<pair<string, string>, bool> &client_sf, struct sockaddr_in cli_addr, map<string, vector <struct message>> &client_messages){

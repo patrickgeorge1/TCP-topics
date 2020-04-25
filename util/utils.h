@@ -14,6 +14,6 @@ void DIE(bool, std::string);
 void send_connect_message(int, char *);
 void send_disconnect_message(int, char *);
 bool FD_IS_EMPTY(fd_set const *);
-
+void translate_tcp_message(message);
 
 #endif //TCP_TOPICS_UTILS_H

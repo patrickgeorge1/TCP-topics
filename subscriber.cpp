@@ -59,14 +59,10 @@ int main(int argc, char *argv[]) {
             memset(buffer, 0, BUFLEN);
             fgets(buffer, BUFLEN - 1, stdin);
 
-            // TODO subscribe, unsubscribe
-
             if (strncmp(buffer, "exit", 4) == 0) {
                 send_disconnect_message(tcp_socket, argv[1]);
                 __FD_CLR(tcp_socket, &descriptors);
 
-//                ret = close(tcp_socket);
-//                DIE(ret < 0, "cannot close socket");
                 ret = shutdown(tcp_socket, SHUT_RDWR);
                 DIE(ret < 0, "cannot shutdown socket");
                 break;
@@ -91,11 +87,13 @@ int main(int argc, char *argv[]) {
                 if (command == TYPE_SUBSCRIBE) {
                     if (atoi(getSF(buffer)) == 1) strcpy(message.message, "sf");
                     message.type = TYPE_SUBSCRIBE;
+
                 } else {
                     message.type = TYPE_UNSUBSCRIBE;
                 }
 
                 int n = send(tcp_socket, &message, sizeof(message), 0);
+                command == TYPE_SUBSCRIBE ? printf("subscribed topic \n") : printf("unsubscribed topic \n");
                 DIE(n < 0, "cannot send subscription request from client");
             }
 
@@ -111,7 +109,7 @@ int main(int argc, char *argv[]) {
                 cout << "Server closed connection !" << endl;
                 break;
             } else {
-                printf("%s:%d - %s - %d - %s \n", inet_ntoa(message.source.sin_addr), ntohs(message.source.sin_port), message.topic, message.type, message.message);
+                translate_tcp_message(message);
             }
         }
 
