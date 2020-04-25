@@ -144,6 +144,17 @@ int main(int argc, char *argv[]) {
             memset(buffer, 0, BUFLEN);
             fgets(buffer, BUFLEN - 1, stdin);
             if (strncmp(buffer, "exit", 4) == 0) {
+                cout << "send exit to all the clients" << endl;
+
+                message message = {};
+                message.type = TYPE_DISCONNECT;
+                for (int i = 5; i <= descriptors_max; ++i) {
+
+                    ret = send(i, &message, sizeof(message), 0);
+                    DIE(ret < 0, "cannot send shutdown to servers");
+                }
+                ret = shutdown(tcp_socket, SHUT_RDWR);
+                DIE(ret < 0, "cannot shutdown tcp socket");
                 break;
             }
         }
@@ -256,6 +267,3 @@ void send_online_messages(message &message, map<string, int> &client_sockets, ma
         }
     }
 }
-
-// TODO fix exit
-// TODO solve message formatting
