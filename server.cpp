@@ -135,7 +135,6 @@ int main(int argc, char *argv[]) {
             int received_bytes = recvfrom(udp_socket, &message, sizeof(message), 0, (struct sockaddr*) &cli_addr, &clilen);
             DIE(received_bytes < 0, "udp message received got problems");
             string message_topic (message.topic);
-
             send_online_messages(message, client_sockets, client_topics, client_active, client_sf, cli_addr, client_messages);
 
             }

@@ -43,39 +43,48 @@ bool FD_IS_EMPTY(fd_set const *fdset)
     return memcmp(fdset, &empty, sizeof(fd_set)) == 0;
 }
 void translate_tcp_message(message message) {
-//    printf("%s:%d - %s - %d - %s \n", inet_ntoa(message.source.sin_addr), ntohs(message.source.sin_port), message.topic, message.type, message.message);
-    int value_int;
-    double value_double;
-    float  value_float;
-    char * value_string;
+    char value_of_message[1500];
 
-    switch ((int) message.type) {
+    switch (message.data_type) {
         case DATATYPE_INT:
             printf("int case \n");
-            value_int = ntohl(*(unsigned int *) (message.message + 1));
-            printf("before sign %d \n", value_int);
-            if (message.message[0]) value_int = -value_int;
-            printf("after sign %d \n", value_int);
+            int value_int;
 
-            printf("%s:%d - %s - %s - %d \n", inet_ntoa(message.source.sin_addr), ntohs(message.source.sin_port), message.topic, DATATYPE_INT_STRING, value_int);
+            value_int = ntohl(*(unsigned int *) (message.message + 1));
+            if (message.message[0]) value_int = -value_int;
+
+            sprintf(value_of_message, "%d", value_int);
+            printf("%s:%d - %s - %s - %s \n", inet_ntoa(message.source.sin_addr), ntohs(message.source.sin_port), message.topic, DATATYPE_INT_STRING, value_of_message);
             break;
 
         case DATATYPE_SHORTREAL:
+            printf("shortreal case \n");
+            double value_double;
+
             value_double = ntohs(*(unsigned short int *) (message.message));
-            printf("%s:%d - %s - %s - %.2f \n", inet_ntoa(message.source.sin_addr), ntohs(message.source.sin_port), message.topic, DATATYPE_SHORTREAL_STRING, value_double);
+
+            sprintf(value_of_message, "%.2f", value_double / 100);
+            printf("%s:%d - %s - %s - %s \n", inet_ntoa(message.source.sin_addr), ntohs(message.source.sin_port), message.topic, DATATYPE_SHORTREAL_STRING, value_of_message);
             break;
 
         case DATATYPE_FLOAT:
+            printf("float case \n");
+            float  value_float;
+
             value_float = ntohl(*(unsigned int *)(message.message + 1));
             value_float = value_float / pow(10, message.message[5]);
             if (message.message[0] == 1) value_float = -value_float;
 
-            printf("%s:%d - %s - %s - %lf \n", inet_ntoa(message.source.sin_addr), ntohs(message.source.sin_port), message.topic, DATATYPE_FLOAT_STRING, value_float);
+            sprintf(value_of_message, "%lf", value_float);
+
+            printf("%s:%d - %s - %s - %s \n", inet_ntoa(message.source.sin_addr), ntohs(message.source.sin_port), message.topic, DATATYPE_FLOAT_STRING, value_of_message);
             break;
 
         case DATATYPE_STRING:
-            memcpy(value_string, message.message, strlen(message.message) + 1);
-            printf("%s:%d - %s - %s - %s \n", inet_ntoa(message.source.sin_addr), ntohs(message.source.sin_port), message.topic, DATATYPE_STRING_STRING, value_string);
+            printf("string case \n");
+
+            memcpy(value_of_message, message.message, strlen(message.message) + 1);
+            printf("%s:%d - %s - %s - %s \n", inet_ntoa(message.source.sin_addr), ntohs(message.source.sin_port), message.topic, DATATYPE_STRING_STRING, value_of_message);
             break;
     }
 }
