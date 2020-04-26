@@ -136,8 +136,7 @@ int main(int argc, char *argv[]) {
             DIE(received_bytes < 0, "udp message received got problems");
             string message_topic (message.topic);
             send_online_messages(message, client_sockets, client_topics, client_active, client_sf, cli_addr, client_messages);
-
-            }
+        }
 
         // read from keyboard
         if (__FD_ISSET(0, &tmp_descriptors)) {

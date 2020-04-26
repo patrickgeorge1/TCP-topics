@@ -81,7 +81,6 @@ int main(int argc, char *argv[]) {
                 char *topic = getTopic(buffer);
                 strcpy(message.topic, topic);
                 strcpy(message.id, argv[1]);
-                //printf("topic is |%s| with size |%d| and last char is equal with term |%d| \n", message.topic, (int)strlen(message.topic), (message.topic[strlen(message.topic) - 1] == '\n'));
 
 
                 if (command == TYPE_SUBSCRIBE) {
