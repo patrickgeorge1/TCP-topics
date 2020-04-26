@@ -59,6 +59,7 @@ int main(int argc, char *argv[]) {
             memset(buffer, 0, BUFLEN);
             fgets(buffer, BUFLEN - 1, stdin);
 
+            // close subscriber if "exit"
             if (strncmp(buffer, "exit", 4) == 0) {
                 send_disconnect_message(tcp_socket, argv[1]);
                 __FD_CLR(tcp_socket, &descriptors);
@@ -68,15 +69,19 @@ int main(int argc, char *argv[]) {
                 break;
             }
 
+            // fgets trick
             if (buffer[strlen(buffer) - 1] == '\n') {
                 buffer[strlen(buffer) - 1] = '|';
             }
-            //printf("you parse |%s| \n", buffer);
+
+            // check what type of command does the subscriber wrote
             int command = parse_input(buffer);
             if (command < 0) {
+                // invalid :   anything outside {exit, subscribe, unsubscribe}
                 cout << "Invalid command, maybe you want to try <subscribe topic SF> or <unsubcribe topic>" << endl;
                 continue;
             } else {
+                // command: subscribe | unsubscribe, send it to server
                 message message = {};
                 char *topic = getTopic(buffer);
                 strcpy(message.topic, topic);
@@ -91,6 +96,7 @@ int main(int argc, char *argv[]) {
                     message.type = TYPE_UNSUBSCRIBE;
                 }
 
+                // annouce subscriber
                 int n = send(tcp_socket, &message, sizeof(message), 0);
                 command == TYPE_SUBSCRIBE ? printf("subscribed topic \n") : printf("unsubscribed topic \n");
                 DIE(n < 0, "cannot send subscription request from client");
@@ -98,17 +104,20 @@ int main(int argc, char *argv[]) {
 
         }
 
-        // received tcp message
+        // received tcp message: close_connection | message_from_udp
         if (__FD_ISSET(tcp_socket, &tmp_descriptors)) {
             message message = {};
             int received_bytes = recv(tcp_socket, &message, sizeof(message), 0);
             DIE(received_bytes < 0, "tcp message received got problems");
 
+            // close_connection
             if ((int) message.type == TYPE_DISCONNECT) {
+                // close connection and subscriber
                 ret = shutdown(tcp_socket, SHUT_RDWR);
                 DIE(ret < 0, "cannot shutdown socket");
                 break;
             } else {
+                // message_from_udp, format and display it
                 translate_tcp_message(message);
             }
         }
@@ -117,6 +126,7 @@ int main(int argc, char *argv[]) {
 }
 
 int parse_input(char * message) {
+    // check if command is "subscribe", "unsubscribe" or an invalid input
     if (isSubscribe(message)) return TYPE_SUBSCRIBE;
     if (isUnsubscribe(message)) return TYPE_UNSUBSCRIBE;
     return -1;

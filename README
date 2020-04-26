@@ -1,1 +1,0 @@
-client_sockets.find(10) == client_sockets.end()  ---> key does not exits

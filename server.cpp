@@ -117,10 +117,12 @@ int main(int argc, char *argv[]) {
                     break;
 
                     case TYPE_SUBSCRIBE:
+                        // subscribe a client to a topic
                         subscribe_client(message, client_topics, client_sf);
                         break;
 
                     case TYPE_UNSUBSCRIBE:
+                        // unsubscribe a client from a topic
                         unsubscribe_client(message, client_topics, client_sf);
                         break;
                 }
@@ -128,12 +130,13 @@ int main(int argc, char *argv[]) {
             }
         }
 
-
         // udp message arrived
         if (__FD_ISSET(udp_socket, &tmp_descriptors)) {
             message message = {};
             int received_bytes = recvfrom(udp_socket, &message, sizeof(message), 0, (struct sockaddr*) &cli_addr, &clilen);
             DIE(received_bytes < 0, "udp message received got problems");
+
+            // send messege to all subscribers
             string message_topic (message.topic);
             send_online_messages(message, client_sockets, client_topics, client_active, client_sf, cli_addr, client_messages);
         }
@@ -142,6 +145,8 @@ int main(int argc, char *argv[]) {
         if (__FD_ISSET(0, &tmp_descriptors)) {
             memset(buffer, 0, BUFLEN);
             fgets(buffer, BUFLEN - 1, stdin);
+
+            // send disconnect message to all the clients
             if (strncmp(buffer, "exit", 4) == 0) {
                 message message = {};
                 message.type = TYPE_DISCONNECT;
@@ -154,56 +159,52 @@ int main(int argc, char *argv[]) {
                 break;
             }
         }
-
-
     } FOREVER;
 
     return 0;
 }
 
 void register_client(message &message, int socket, struct sockaddr_in cli_addr, map<string, int> &client_sockets, map<string, bool> &client_active, map<string, vector <struct message>> &client_messages) {
+    // assign <client_id, client_socket> and <client_id, active_status = true>
     string message_id(message.id);
 
     if (client_active.find(message_id) == client_active.end()) {
         printf("New client %s connected from %s:%d. \n", message_id.c_str(), inet_ntoa(cli_addr.sin_addr), ntohs(cli_addr.sin_port));
-
-    } else {
-        printf("client %s reconnected from %s:%d. \n", message_id.c_str(), inet_ntoa(cli_addr.sin_addr), ntohs(cli_addr.sin_port));
     }
     client_sockets[message_id] = socket;                             // register client socket
     client_active[message_id] = true;                                // make client active
 }
 
 void disconnect_client(message &message, map<string, int> &client_sockets, map<string, bool> &client_active) {
+    // remove <client_id, client_socket> and <client_id, active_status = fals>
     string message_id(message.id);
     printf("Client %s disconnected .\n", message_id.c_str());
 
-    if(DEBUG_PRINT) printf("Client %s disconnected %s\n", message_id.c_str(), message.id);
     client_active[message_id] = false;   // make client offline
     client_sockets.erase(message_id);    // remove client socket
 }
 
 void send_offline_messages(string id, int tcp_socket, map<string, vector <message>> &client_messages) {
+        // send all from client's sf missed messages queue
         vector<message> messages = client_messages[id];
-        if(DEBUG_PRINT) printf("client is here %s checks for unreached messages\n", id.c_str());
+
         // send messages
         for (message message : messages) {
             int ret = send(tcp_socket, &message, sizeof(message), 0);
             DIE(ret < 0, "cannot send topic message sf to user that reconnected");
-            if(DEBUG_PRINT) printf("sent restant\n");
         }
-        // empty vector
+
+        // empty queue
         vector<message> empty_messages;
         client_messages[id] = empty_messages;
 }
 
 void subscribe_client(message &message, map<string, vector <string>> &client_topics, map<pair<string, string>, bool> &client_sf) {
+    // add to <topic, <clients>> this client and also check  <pair<topic, client>, status_sf>
     string message_id(message.id);
     string message_topic(message.topic);
 
-    if(DEBUG_PRINT) printf("client %s subscribed to %s\n", message_id.c_str(), message_topic.c_str());
     vector<string> subscribers;
-
     if (client_topics.find(message_topic) != client_topics.end()) {
         // topic exists so I take it
         subscribers = client_topics[message_topic];
@@ -215,10 +216,9 @@ void subscribe_client(message &message, map<string, vector <string>> &client_top
 }
 
 void unsubscribe_client(message &message, map<string, vector <string>> &client_topics, map<pair<string, string>, bool> &client_sf) {
+    // remove from <topic, <clients>> this client and make <pair<topic, client>, status_sf = false>
     string message_id(message.id);
     string message_topic(message.topic);
-
-    if(DEBUG_PRINT) printf("client %s unsubscribed to %s\n", message_id.c_str(), message_topic.c_str());
 
     vector<string> subscribers  = client_topics[message_topic];
     vector<string> remainig_subscribers;
@@ -235,30 +235,28 @@ void unsubscribe_client(message &message, map<string, vector <string>> &client_t
 }
 
 void send_online_messages(message &message, map<string, int> &client_sockets, map<string, vector <string>> client_topics, map<string, bool> &client_active, map<pair<string, string>, bool> &client_sf, struct sockaddr_in cli_addr, map<string, vector <struct message>> &client_messages){
+    // send messege to online clients and enqueue for sf clients
     message.source = cli_addr;
     string message_topic(message.topic);
-    if(DEBUG_PRINT) cout << "udp message arrived   topic :  " << message_topic.c_str() <<  " --> ready to deliver message " << message.message << endl;
-
 
     vector<string> subscribers = client_topics[message_topic];
+    // all subscribers from a topic
     for (string subscriber : subscribers) {
         int tcp_socket = client_sockets[subscriber];
         if (client_active[subscriber] == true) {
-            // subscriber is active
+            // subscriber is active, just send
             int ret = send(tcp_socket, &message, sizeof(message), 0);
-            if(DEBUG_PRINT) cout << "-- deliver to client" << subscriber.c_str() << " [active] " << subscriber << " <--> map " << client_active[subscriber] << " map keys " << client_active.size() <<  endl;
             DIE(ret < 0, "cannot send topic message to subscriber ");
         } else {
-
+            // subscriber is inactive, check if it s sf
             if (client_sf[make_pair(message_topic, subscriber)]) {
-                // subscriber is SF
+                // subscriber is SF, enqueue
                 vector<struct message> offline_messages;
                 if (client_messages.find(subscriber) != client_messages.end()) {
                     offline_messages = client_messages[subscriber];
                 }
                 offline_messages.push_back(message);
                 client_messages[subscriber] = offline_messages;
-                if(DEBUG_PRINT) cout << "-- deliver to client" << subscriber.c_str() << " [inactive] " << subscriber << " <--> map " << client_active[subscriber] << endl;
             }
         }
     }

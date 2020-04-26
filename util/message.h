@@ -9,7 +9,7 @@
 
 struct message {
     char topic[50];               // topic of client
-    u_int8_t data_type;       // data type sent
+    u_int8_t data_type;           // data type sent
     char message[1500];           // message sent
 
     unsigned char type;           // classify message type
